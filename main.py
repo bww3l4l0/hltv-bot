@@ -1,19 +1,20 @@
 import os
 import asyncio
+import logging
+from core.menu import top_level_router
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
-from aiogram.types.message import Message
-from aiogram.filters import Command, CommandStart
 
 load_dotenv()
 
 TOKEN = os.getenv('TOKEN')
 dispatcher = Dispatcher()
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='hltv_v2_log.log', filemode='w')
 
+routers = [top_level_router]
 
-@dispatcher.message(CommandStart())
-async def start(message: Message) -> None:
-    await message.answer('привет')
+dispatcher.include_routers(*routers)
 
 
 async def main() -> None:
@@ -22,5 +23,4 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
-    print(TOKEN)
     asyncio.run(main())

@@ -2,7 +2,6 @@ import asyncio
 import urllib3
 import re
 from concurrent.futures import ThreadPoolExecutor
-from model.test_model_load import model
 from prepocessing import preprocess
 
 
@@ -72,6 +71,9 @@ def verify_url() -> bool:
 
     print(parsed.path)
 
+from match_url_parser import  fetch_match_urls
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    print(fetch_match_urls('tomorrow'))
+    # asyncio.run(main())
+    # print(process_match('https://www.hltv.org/matches/2374658/metizport-vs-tsm-elisa-invitational-fall-2024'))

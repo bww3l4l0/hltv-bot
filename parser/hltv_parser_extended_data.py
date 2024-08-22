@@ -37,7 +37,7 @@ def close_popup(driver: Chrome) -> None:
 
 
 def make_driver(proxy: str = None,
-                timeout: int = 60, 
+                timeout: int = 60,
                 wait_time: int = 30) -> Chrome:
 
     options = ChromeOptions()
@@ -483,7 +483,7 @@ def get(driver: Chrome,
                                     '.summaryStatBreakdownDataValue')
             elif page_type == 'team':
                 driver.find_element(By.CSS_SELECTOR,
-                                    'a.col-custom')
+                                    '.teamProfile')
             else:
                 raise ValueError
         except TimeoutException:
@@ -743,11 +743,13 @@ def process_match(url: str, proxy: str = None,
             team2_url = driver.find_element(By.CSS_SELECTOR,
                                             '.team2-gradient a').get_attribute('href')
 
-            driver.get(team1_url)
+            # driver.get(team1_url)
+            get(driver, team1_url, 'team')
             team1_players = list(map(lambda x: x.get_attribute('href'),
                                      driver.find_elements(By.CSS_SELECTOR,
                                                           '.bodyshot-team.g-grid a')))
-            driver.get(team2_url)
+            # driver.get(team2_url)
+            get(driver, team2_url, 'team')
             team2_players = list(map(lambda x: x.get_attribute('href'),
                                      driver.find_elements(By.CSS_SELECTOR,
                                                           '.bodyshot-team.g-grid a')))

@@ -23,6 +23,9 @@ dispatcher.include_routers(*routers)
 
 
 async def main() -> None:
+    '''
+    main method
+    '''
     bot = Bot(TOKEN)
     await dispatcher.start_polling(bot)
 

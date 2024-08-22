@@ -14,6 +14,6 @@ def preprocess(data: dict) -> DataFrame:
         df[col] = df[col].apply(lambda x: x.replace('%', ''))
 
     # removing columns
-    data = df.drop(columns=['url', 't1_name', 't2_name', 'date',])
+    # data = df.drop(columns=['url', 't1_name', 't2_name', 'date',])
 
     return df

@@ -6,11 +6,12 @@ from concurrent.futures import ProcessPoolExecutor
 from argparse import ArgumentParser, Namespace
 from dotenv import load_dotenv
 from aiogram import Bot
+from textwrap import dedent
 from parser.hltv_parser_extended_data import process_match
 from parser.match_url_parser import fetch_match_urls
 from parser.prepocessing import preprocess
 from core.predictions import make_result_str
-from textwrap import dedent
+
 
 load_dotenv()
 

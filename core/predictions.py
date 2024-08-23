@@ -8,18 +8,15 @@ from aiogram.types.message import Message
 from core.state_machines import RoutingFsm
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
-from concurrent.futures import ThreadPoolExecutor
-from parser.hltv_parser_extended_data import process_match
-from parser.prepocessing import preprocess
-from parser.match_url_parser import fetch_match_urls
 from pandas import DataFrame
-from numpy import ndarray
+from numpy import ndarray, around
 from textwrap import dedent
 from typing import Literal
+from celery.result import AsyncResult
+from parser.prepocessing import preprocess
+from celery_tasks import process_match_task, fetch_match_urls_task
 
 logger = logging.getLogger(__name__)
-
-pool = ThreadPoolExecutor(2)
 
 prediction_router = Router(name='predictions')
 
@@ -34,47 +31,56 @@ regex_pattern = re.compile(
     r"(?::\d+)?"
     r"(?:/?|[/?]\S+)$", re.IGNORECASE)
 
+url_pattern = re.compile('https://www.hltv.org/matches/\\d{5,7}/\\S{20,300}')
+
 with open('/home/sasha/Documents/vscode/hltv v2 bot/core/model/hltv_v2_model_dump', 'rb') as file:
     model = pickle.load(file)
 
 
 def validate_url(url: str) -> bool:
-    return re.match(regex_pattern, url) is not None
+    return re.match(url_pattern, url) is not None
 
 
 def make_result_str(data: DataFrame, prediction: ndarray) -> str:
-    # round
     result = dedent(f'''url: {data['url'][0]}
 {data['t1_name'][0]} : {data['t2_name'][0]}
 date: {data['date'][0]}
-first team win prob: {round(prediction[0][0], 3)}
-second team win prob: {round(prediction[0][1], 3)}
+first team win prob: {prediction[0][0]:.3f}
+second team win prob: {prediction[0][1]:.3f}
 ''')
     return result
+
+
+async def wait_task_result(result_object: AsyncResult) -> any:
+    while True:
+        await asyncio.sleep(10)
+        if result_object.ready():
+            return result_object.result
 
 
 # рабочая версия но с использованием asyncio
 async def process_match_wrapper(url: str, message: Message) -> None:
 
-    event_loop = asyncio.get_running_loop()
-    try:
-        data = await event_loop.run_in_executor(pool, process_match, url)
-
-    except Exception as e:
-        await message.answer(dedent(f'''url: {url}\nневозможно извлечь нужные данные'''))
-        logger.exception(e)
-        return
+    result_object = process_match_task.apply_async((url,), queue='xyz')
+    data = await wait_task_result(result_object)
 
     if type(data) is dict:
         try:
+
             data = preprocess(data)
             prediction = model.predict_proba(data)
             message_text = make_result_str(data, prediction)
             await message.answer(message_text)
             return
         except Exception as e:
+
             await message.answer(dedent(f'''url; {url}\nневозможно сделать предсказание'''))
             logger.exception(e)
+
+    else:
+        await message.answer(dedent(f'''url: {url}\nневозможно извлечь нужные данные'''))
+        logger.exception(data)
+        return
 
 
 @prediction_router.message(RoutingFsm.getting_url)
@@ -95,51 +101,9 @@ async def predict_one(message: Message, state: FSMContext, ) -> None:
 async def predict_some(callback: CallbackQuery, callback_data: PredictionData) -> None:
     await callback.answer()
 
-    event_loop = asyncio.get_running_loop()
+    result_object = fetch_match_urls_task.apply_async((callback_data.date,), queue='xyz')
 
-    urls = await event_loop.run_in_executor(pool, fetch_match_urls, callback_data.date)
+    urls = await wait_task_result(result_object)
 
     tasks = [process_match_wrapper(url, callback.message) for url in urls]
     await asyncio.gather(*tasks)
-
-
-# @prediction_router.callback_query(F.data == 'today_predict')
-# #@prediction_router.callback_query(PredictionData.filter(F.data == 'today'))
-# async def today_predict(callback: CallbackQuery) -> None:
-#     await callback.answer()
-#     await callback.message.answer('today_predict')
-
-#     event_loop = asyncio.get_running_loop()
-
-#     urls = await event_loop.run_in_executor(pool, fetch_match_urls, 'today')
-
-#     await callback.message.answer(str(urls))
-
-#     tasks = []
-#     for url in urls:
-#         print(url)
-#         tasks.append(event_loop.create_task(process_match_wrapper(url, callback.message)))
-#     await tasks
-
-
-# @prediction_router.callback_query(F.data == 'tommorow_predict')
-# async def tommorow_predict(callback: CallbackQuery) -> None:
-#     await callback.answer()
-#     await callback.message.answer('tommorow_predict')
-
-#     event_loop = asyncio.get_running_loop()
-
-#     urls = await event_loop.run_in_executor(pool, fetch_match_urls, 'tomorrow')
-
-#     await callback.message.answer(str(urls))
-
-#     tasks = []
-#     for url in urls:
-#         print(url)
-#         tasks.append(event_loop.create_task(process_match_wrapper(url, callback.message)))
-#     # await tasks
-#     await asyncio.gather(*tasks)
-
-'''TO DO
-рефакторинг в 1 хендлер
-'''

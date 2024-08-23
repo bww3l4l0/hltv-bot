@@ -1,10 +1,10 @@
 import os
 import asyncio
 import logging
-from core.menu import top_level_router
-from core.predictions import prediction_router
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
+from core.menu import top_level_router
+from core.predictions import prediction_router
 
 
 load_dotenv()
@@ -34,15 +34,14 @@ if __name__ == '__main__':
     asyncio.run(main())
 
 
-''' требования
-Работать через евент луп и экзекьютор
-Семафор зависит от количества прокси
-Функции предикт и предикт лайв день завтра
-Кэш(мб через редис) или aiocache
-'''
+# требования
+# Работать через евент луп и экзекьютор
+# Семафор зависит от количества прокси
+# Функции предикт и предикт лайв день завтра
+# Кэш(мб через редис) или aiocache
 
-''' to do
-обучить хоть какую-то модель
-написать парсер ссылок для матчей
-CallbackAnswerMiddleware
-'''
+
+#  to do
+# обучить хоть какую-то модель
+# написать парсер ссылок для матчей
+# CallbackAnswerMiddleware

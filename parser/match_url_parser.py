@@ -34,7 +34,7 @@ def __get_live_match_urls(driver: Chrome) -> list[str]:
     return result
 
 
-def fetch_match_urls(time: Literal['live', 'today', 'tomorrow']) -> list[WebElement]:
+def fetch_match_urls(time: Literal['live', 'today', 'tomorrow']) -> list[str]:
     '''
     возвращает ссылки на матчи(лайв, сегодня, завтра)
     '''

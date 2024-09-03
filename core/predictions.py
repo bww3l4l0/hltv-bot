@@ -2,6 +2,7 @@ import re
 import asyncio
 import pickle
 import logging
+import json
 from aiogram import Router, F
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types.message import Message
@@ -9,12 +10,14 @@ from core.state_machines import RoutingFsm
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 from pandas import DataFrame
-from numpy import ndarray, around
+from numpy import ndarray
 from textwrap import dedent
 from typing import Literal
 from celery.result import AsyncResult
 from parser.prepocessing import preprocess
 from celery_tasks import process_match_task, fetch_match_urls_task
+from redis import Redis
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +62,27 @@ async def wait_task_result(result_object: AsyncResult) -> any:
 
 
 # рабочая версия но с использованием asyncio
-async def process_match_wrapper(url: str, message: Message) -> None:
+async def process_match_wrapper(url: str, message: Message, redis: Redis) -> None:
+    
+    # check redis by url
+    # хранить будем сообщения на ответ с ttl 3600
+    data = redis.get(url)
+    
+    # сериализация ошибки
+    # попробовать поймать ошибку извлечения данных
+    if data is None:
+        result_object = process_match_task.apply_async((url,), queue='xyz')
+        data = await wait_task_result(result_object)
+        if type(data) is dict:
+            msg = json.dumps(data)
+            redis.setex(url, 3600, msg)
+        else:
+            redis.setex(url,3600,'Exception')
 
-    result_object = process_match_task.apply_async((url,), queue='xyz')
-    data = await wait_task_result(result_object)
+    elif data == b'Exception':
+        data = None
+    else:
+        data = json.loads(data)            
 
     if type(data) is dict:
         try:
@@ -84,7 +104,7 @@ async def process_match_wrapper(url: str, message: Message) -> None:
 
 
 @prediction_router.message(RoutingFsm.getting_url)
-async def predict_one(message: Message, state: FSMContext, ) -> None:
+async def predict_one(message: Message, state: FSMContext, redis: Redis) -> None:
 
     url = message.text
 
@@ -94,16 +114,16 @@ async def predict_one(message: Message, state: FSMContext, ) -> None:
 
     await state.set_state(RoutingFsm.none)
 
-    await process_match_wrapper(url, message)
+    await process_match_wrapper(url, message, redis)
 
 
 @prediction_router.callback_query(PredictionData.filter(F.date.in_(['live', 'today', 'tomorrow'])))
-async def predict_some(callback: CallbackQuery, callback_data: PredictionData) -> None:
+async def predict_some(callback: CallbackQuery, callback_data: PredictionData, redis: Redis) -> None:
     await callback.answer()
 
     result_object = fetch_match_urls_task.apply_async((callback_data.date,), queue='xyz')
 
     urls = await wait_task_result(result_object)
 
-    tasks = [process_match_wrapper(url, callback.message) for url in urls]
+    tasks = [process_match_wrapper(url, callback.message, redis) for url in urls]
     await asyncio.gather(*tasks)

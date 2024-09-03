@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+import redis
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from core.menu import top_level_router
@@ -12,6 +13,11 @@ load_dotenv()
 TOKEN = os.getenv('TOKEN')
 
 dispatcher = Dispatcher()
+
+pool = redis.ConnectionPool(host='localhost', port=6379, db=0, max_connections=4)
+redis_conn = redis.Redis(connection_pool=pool)
+
+dispatcher['redis'] = redis_conn
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='hltv_v2_log.log', filemode='w')
@@ -35,11 +41,10 @@ if __name__ == '__main__':
 
 
 # требования
-# Работать через евент луп и экзекьютор
-# Семафор зависит от количества прокси
 # Функции предикт и предикт лайв день завтра
-# Кэш(мб через редис) или aiocache
-
+# Кэш(мб через редис) или aiocache может встроить в селери может сделать рефакторинг
+# cancel
+# добавить прокси
 
 #  to do
 # обучить хоть какую-то модель

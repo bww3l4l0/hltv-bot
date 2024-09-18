@@ -2,6 +2,7 @@ import re
 import pandas as pd
 import resource
 from undetected_chromedriver import Chrome, ChromeOptions
+from pyvirtualdisplay import Display
 from selenium.webdriver.common.by import By
 from time import sleep
 from datetime import date, timedelta, datetime
@@ -687,6 +688,10 @@ def process_match(url: str, proxy: str = None,
                   history: bool = False,
                   extended: bool = False
                   ) -> dict[str, any]:
+    
+    # display = Display(size=(1920, 1080))
+
+    # display.start()
 
     driver = make_driver(proxy, 30, 15)
 
@@ -762,6 +767,7 @@ def process_match(url: str, proxy: str = None,
 
     except Exception as e:
         driver.quit()
+        # display.stop()
         raise e
 
     try:
@@ -786,6 +792,7 @@ def process_match(url: str, proxy: str = None,
         raise e
     finally:
         driver.quit()
+        # display.stop()
 
     return res
 

@@ -7,16 +7,17 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from core.state_machines import RoutingFsm
 from core.predictions import PredictionData
+from core.filters import IsAdmin
 
 top_level_router = Router()
 
 
-@top_level_router.message(CommandStart())
+@top_level_router.message(CommandStart(), IsAdmin())
 async def start(message: Message) -> None:
     await message.answer('привет чтобы вызвать меню напиши /menu')
 
 
-@top_level_router.message(Command('menu'))
+@top_level_router.message(Command('menu'), IsAdmin())
 async def menu(message: Message) -> None:
 
     kb = InlineKeyboardMarkup(
@@ -31,7 +32,7 @@ async def menu(message: Message) -> None:
     await message.answer('reply keyboard', reply_markup=kb)
 
 
-@top_level_router.callback_query(F.data == 'predict')
+@top_level_router.callback_query(F.data == 'predict', IsAdmin())
 async def predict(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await callback.message.answer('введите url матча')

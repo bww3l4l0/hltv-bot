@@ -63,11 +63,11 @@ async def wait_task_result(result_object: AsyncResult) -> any:
 
 # рабочая версия но с использованием asyncio
 async def process_match_wrapper(url: str, message: Message, redis: Redis) -> None:
-    
+
     # check redis by url
     # хранить будем сообщения на ответ с ttl 3600
     data = redis.get(url)
-    
+
     # сериализация ошибки
     # попробовать поймать ошибку извлечения данных
     if data is None:
@@ -77,12 +77,12 @@ async def process_match_wrapper(url: str, message: Message, redis: Redis) -> Non
             msg = json.dumps(data)
             redis.setex(url, 3600, msg)
         else:
-            redis.setex(url,3600,'Exception')
+            redis.setex(url, 3600, 'Exception')
 
     elif data == b'Exception':
         data = None
     else:
-        data = json.loads(data)            
+        data = json.loads(data)          
 
     if type(data) is dict:
         try:

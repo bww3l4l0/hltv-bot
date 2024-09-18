@@ -4,6 +4,7 @@ import logging
 import redis
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from core.menu import top_level_router
 from core.predictions import prediction_router
 
@@ -45,8 +46,4 @@ if __name__ == '__main__':
 # Кэш(мб через редис) или aiocache может встроить в селери может сделать рефакторинг
 # cancel
 # добавить прокси
-
-#  to do
-# обучить хоть какую-то модель
-# написать парсер ссылок для матчей
-# CallbackAnswerMiddleware
+# добавить автоматический обход сайта и оповещение об изменении результата по матчу(опционально)

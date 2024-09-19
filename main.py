@@ -28,6 +28,8 @@ routers = [top_level_router,
 
 dispatcher.include_routers(*routers)
 
+scheduler = AsyncIOScheduler()
+
 
 async def main() -> None:
     '''

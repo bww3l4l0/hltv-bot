@@ -18,7 +18,7 @@ from parser.prepocessing import preprocess
 from celery_tasks import process_match_task, fetch_match_urls_task
 from redis import Redis
 
-
+SLEEP_TIME = 10
 logger = logging.getLogger(__name__)
 
 prediction_router = Router(name='predictions')
@@ -56,7 +56,7 @@ second team win prob: {prediction[0][1]:.3f}
 
 async def wait_task_result(result_object: AsyncResult) -> any:
     while True:
-        await asyncio.sleep(10)
+        await asyncio.sleep(SLEEP_TIME)
         if result_object.ready():
             return result_object.result
 
@@ -82,7 +82,7 @@ async def process_match_wrapper(url: str, message: Message, redis: Redis) -> Non
     elif data == b'Exception':
         data = None
     else:
-        data = json.loads(data)          
+        data = json.loads(data)       
 
     if type(data) is dict:
         try:

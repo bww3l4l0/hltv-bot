@@ -2,20 +2,26 @@ import os
 import asyncio
 import logging
 import redis
-from dotenv import load_dotenv
+
+from multiprocessing import Process
+from threading import Thread
+# from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 from core.menu import top_level_router
 from core.predictions import prediction_router
+from settings import settings
+# from sch import run_scheduler
 
 
-load_dotenv()
+# load_dotenv()
 
-TOKEN = os.getenv('TOKEN')
+# TOKEN = os.getenv('TOKEN')
 
 dispatcher = Dispatcher()
 
-pool = redis.ConnectionPool(host='localhost', port=6379, db=0, max_connections=4)
+# pool = redis.ConnectionPool(host='localhost', port=6379, db=0, max_connections=4)
+pool = redis.ConnectionPool(**settings.REDIS_POOL_SETTINGS)
 redis_conn = redis.Redis(connection_pool=pool)
 
 dispatcher['redis'] = redis_conn
@@ -28,18 +34,19 @@ routers = [top_level_router,
 
 dispatcher.include_routers(*routers)
 
-scheduler = AsyncIOScheduler()
-
 
 async def main() -> None:
     '''
     main method
     '''
-    bot = Bot(TOKEN)
+    bot = Bot(settings.TOKEN)
+    # process = Process(target=run_scheduler, args=(bot, ))
+    # process.start()
     await dispatcher.start_polling(bot)
 
 
 if __name__ == '__main__':
+
     asyncio.run(main())
 
 
@@ -47,5 +54,9 @@ if __name__ == '__main__':
 # Функции предикт и предикт лайв день завтра
 # Кэш(мб через редис) или aiocache может встроить в селери может сделать рефакторинг
 # cancel
-# добавить прокси
+# добавить прокси лист
 # добавить автоматический обход сайта и оповещение об изменении результата по матчу(опционально)
+# добавить настройки(адрес редиса, ....)
+# сделать запуск из одного файла(бот шедулер воркеры)
+# деплой в докер контейнер
+# вебхук

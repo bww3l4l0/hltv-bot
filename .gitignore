@@ -6,3 +6,9 @@ log.log
 __pycache__
 rus.sh
 test.py
+proxies.json
+howto.md
+chromedriver
+parser/proxies/
+proxies.txt
+settings_.py

@@ -11,6 +11,7 @@ from aiogram import Bot, Dispatcher
 from core.menu import top_level_router
 from core.predictions import prediction_router
 from settings import settings
+
 # from sch import run_scheduler
 
 
@@ -46,17 +47,14 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
-
     asyncio.run(main())
 
 
 # требования
-# Функции предикт и предикт лайв день завтра
-# Кэш(мб через редис) или aiocache может встроить в селери может сделать рефакторинг
 # cancel
-# добавить прокси лист
 # добавить автоматический обход сайта и оповещение об изменении результата по матчу(опционально)
-# добавить настройки(адрес редиса, ....)
 # сделать запуск из одного файла(бот шедулер воркеры)
 # деплой в докер контейнер
 # вебхук
+# изменение настроек через бота
+# перенести настройки на pydantic

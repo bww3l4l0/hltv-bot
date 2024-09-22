@@ -3,6 +3,7 @@ from aiogram.types.message import Message
 
 ADMIN_ID = 993955495
 
+
 class IsAdmin(Filter):
     def __init__(self) -> None:
         super().__init__()

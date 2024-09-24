@@ -12,3 +12,4 @@ chromedriver
 parser/proxies/
 proxies.txt
 settings_.py
+cancel.py

@@ -7,10 +7,12 @@ function ctrl_c(){
 
 }
 
-celery -A celery_tasks.app worker --loglevel=DEBUG --logfile=log.log --pool=solo -n 4545 -E -Q xyz &
-celery -A celery_tasks.app worker --loglevel=DEBUG --logfile=log.log --pool=solo -n 4546 -E -Q xyz &
-
 sudo docker start 2d33b59d874a 
+
+n=$(wc -l < proxies.txt)
+n=$((n+2))
+
+celery -A celery_tasks.app worker --loglevel=DEBUG --logfile=log.log --pool=prefork -n hltv -E -Q xyz --concurrency=$n &
 
 "/home/sasha/Documents/vscode/hltv v2 bot/.venv/bin/python" "/home/sasha/Documents/vscode/hltv v2 bot/main.py" &
 "/home/sasha/Documents/vscode/hltv v2 bot/.venv/bin/python" "/home/sasha/Documents/vscode/hltv v2 bot/sch.py" &

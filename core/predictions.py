@@ -4,6 +4,7 @@ import pickle
 import logging
 import json
 from aiogram import Router, F
+from aiogram.filters import Command
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types.message import Message
 from core.state_machines import RoutingFsm
@@ -14,8 +15,11 @@ from numpy import ndarray
 from textwrap import dedent
 from typing import Literal
 from celery.result import AsyncResult
+
 from parser.prepocessing import preprocess
-from celery_tasks import process_match_task, fetch_match_urls_task
+from celery_tasks import (process_match_task,
+                          fetch_match_urls_task,
+                          app as celery_app)
 from redis import Redis
 
 from settings import settings
@@ -24,6 +28,8 @@ from settings import settings
 logger = logging.getLogger(__name__)
 
 prediction_router = Router(name='predictions')
+
+tasks = set()
 
 
 class PredictionData(CallbackData, prefix='123'):
@@ -103,6 +109,11 @@ async def process_match_wrapper(url: str, message: Message, redis: Redis) -> Non
         await message.answer(dedent(f'''url: {url}\nневозможно извлечь нужные данные'''))
         logger.exception(data)
         return
+
+
+@prediction_router.message(Command('cancel'))
+async def calcel(message: Message) -> None:
+    await message.answer('задачи отменены')
 
 
 @prediction_router.message(RoutingFsm.getting_url)

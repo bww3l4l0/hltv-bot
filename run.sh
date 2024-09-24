@@ -7,6 +7,8 @@ function ctrl_c(){
 
 }
 
+python3 ./parser/proxy_maker.py 
+
 sudo docker start 2d33b59d874a 
 
 n=$(wc -l < proxies.txt)

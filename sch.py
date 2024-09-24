@@ -10,12 +10,19 @@ from aiogram import Bot
 
 from celery_tasks import process_match_task, fetch_match_urls_task
 from core.predictions import wait_task_result, make_result_str
+from apscheduler.triggers.cron import CronTrigger
 from parser.prepocessing import preprocess
+
 from settings import settings
 
 
 with open('/home/sasha/Documents/vscode/hltv v2 bot/core/model/hltv_v2_model_dump', 'rb') as file:
     model = pickle.load(file)
+
+user = {
+    'telegram_id': 993955495,
+    'autopredict_next_day': True
+}
 
 
 async def process_match(url: str, bot: Bot) -> None:
@@ -25,7 +32,7 @@ async def process_match(url: str, bot: Bot) -> None:
         match_data = preprocess(match_data)
         predictions = model.predict_proba(match_data)
         result_str = make_result_str(match_data, predictions)
-        await bot.send_message(settings.TELEGRAM_ID, result_str)
+        await bot.send_message(user['telegram_id'], result_str)
 
 
 async def process_tomorrow_predictions(bot: Bot) -> None:
@@ -41,7 +48,7 @@ async def process_tomorrow_predictions(bot: Bot) -> None:
 
 
 def run_scheduler(bot: Bot) -> None:
-    if settings.AUTOPREDICT_NEXT_DAY:
+    if user['autopredict_next_day']:
 
         # bot = Bot(token=settings.TOKEN)
 

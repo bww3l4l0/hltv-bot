@@ -104,3 +104,7 @@ def make_proxy_extensions() -> list[str]:
     #     json.dump(proxies, file)
 
     return proxies
+
+
+if __name__ == '__main__':
+    make_proxy_extensions()

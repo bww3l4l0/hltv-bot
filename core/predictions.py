@@ -13,7 +13,7 @@ from aiogram.types import CallbackQuery
 from pandas import DataFrame
 from numpy import ndarray
 from textwrap import dedent
-from typing import Literal
+from typing import Literal, Callable, Awaitable
 from celery.result import AsyncResult
 
 from parser.prepocessing import preprocess
@@ -42,13 +42,15 @@ regex_pattern = re.compile(
     r"(?::\d+)?"
     r"(?:/?|[/?]\S+)$", re.IGNORECASE)
 
-url_pattern = re.compile('https://www.hltv.org/matches/\\d{5,7}/\\S{20,300}')
 
 with open('/home/sasha/Documents/vscode/hltv v2 bot/core/model/hltv_v2_model_dump', 'rb') as file:
     model = pickle.load(file)
 
+url_pattern = re.compile('https://www.hltv.org/matches/\\d{5,7}/\\S{20,300}')
+
 
 def validate_url(url: str) -> bool:
+    '''url validation for predict one'''
     return re.match(url_pattern, url) is not None
 
 
@@ -69,8 +71,19 @@ async def wait_task_result(result_object: AsyncResult) -> any:
             return result_object.result
 
 
+async def wrap_task(coro: Callable[..., Awaitable]) -> None:
+    task = asyncio.create_task(coro)
+    tasks.add(task)
+    try:
+        await task
+    except asyncio.CancelledError:
+        tasks.remove(task)
+        return
+    tasks.remove(task)
+
+
 # рабочая версия но с использованием asyncio
-async def process_match_wrapper(url: str, message: Message, redis: Redis) -> None:
+async def process_match(url: str, message: Message, redis: Redis) -> None:
 
     # check redis by url
     # хранить будем сообщения на ответ с ttl 3600
@@ -114,6 +127,10 @@ async def process_match_wrapper(url: str, message: Message, redis: Redis) -> Non
 @prediction_router.message(Command('cancel'))
 async def calcel(message: Message) -> None:
     await message.answer('задачи отменены')
+    for task in tasks:
+        task.cancel()
+    celery_app.control.purge()
+    # celery -A proj purge -Q queue1,queue2
 
 
 @prediction_router.message(RoutingFsm.getting_url)
@@ -127,7 +144,8 @@ async def predict_one(message: Message, state: FSMContext, redis: Redis) -> None
 
     await state.set_state(RoutingFsm.none)
 
-    await process_match_wrapper(url, message, redis)
+    # await process_match(url, message, redis)
+    await wrap_task(process_match(url, message, redis))
 
 
 @prediction_router.callback_query(PredictionData.filter(F.date.in_(['live', 'today', 'tomorrow'])))
@@ -138,5 +156,5 @@ async def predict_some(callback: CallbackQuery, callback_data: PredictionData, r
 
     urls = await wait_task_result(result_object)
 
-    tasks = [process_match_wrapper(url, callback.message, redis) for url in urls]
+    tasks = [wrap_task(process_match(url, callback.message, redis)) for url in urls]
     await asyncio.gather(*tasks)

@@ -1,7 +1,7 @@
 from aiogram.filters import Filter
 from aiogram.types.message import Message
-
-ADMIN_ID = 993955495
+from settings import settings
+# ADMIN_ID = 993955495
 
 
 class IsAdmin(Filter):
@@ -9,4 +9,4 @@ class IsAdmin(Filter):
         super().__init__()
 
     async def __call__(self, message: Message) -> bool:
-        return message.from_user.id == ADMIN_ID
+        return message.from_user.id == settings.ADMIN_ID

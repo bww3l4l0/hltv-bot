@@ -17,16 +17,15 @@ from hltv_parser_extended_data import (
     )
 
 
-
-class CustonChrome(Chrome):
+class CustomChrome(Chrome):
 
     def __init__(self,
                  proxy: str = None,
                  timeout: int = 60,
                  wait_time: int = 30,
                  browser_executable_path: str = None,
-                 driver_executable_path: str = None):
-        
+                 driver_executable_path: str = None) -> None:
+
         self.__display = Display()
 
         self.__display.start()
@@ -42,14 +41,14 @@ class CustonChrome(Chrome):
                          browser_executable_path=browser_executable_path,
                          driver_executable_path=driver_executable_path
                          )
-        
+
         self.set_page_load_timeout(timeout)
         self.implicitly_wait(wait_time)
-        
 
-    def __del__(self):
+    def __del__(self) -> None:
         super().__del__()
         self.__display.stop()
+        del self.__display
 
 
 def make_driver(proxy: str = None,
@@ -62,17 +61,18 @@ def make_driver(proxy: str = None,
     options.page_load_strategy = 'eager'
     if proxy is not None:
         options.add_argument(f"--load-extension={proxy}")
-    driver = CustonChrome(options=options,
+    driver = CustomChrome(options=options,
                           browser_executable_path='/usr/bin/google-chrome',
                           # driver_executable_path='/home/sasha/Documents/chromedriver'
                           driver_executable_path='./chromedriver'
                           )
-    
+
     # driver.minimize_window()
     driver.set_page_load_timeout(timeout)
     driver.implicitly_wait(wait_time)
     sleep(2)
     return driver
+
 
 def process_match(url: str, proxy: str = None,
                   history: bool = False,
@@ -85,7 +85,7 @@ def process_match(url: str, proxy: str = None,
 
     # driver = make_driver(proxy, 30, 15)
 
-    driver = CustonChrome(proxy, 30, 15, 
+    driver = CustomChrome(proxy, 30, 15,
                           browser_executable_path='/usr/bin/google-chrome',
                           driver_executable_path='./chromedriver'
                           )

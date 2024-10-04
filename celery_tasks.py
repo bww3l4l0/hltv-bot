@@ -6,10 +6,11 @@ from parser.hltv_parser_extended_data import process_match
 from typing import Literal
 from settings import settings
 
+redis_url = f'redis://{settings.REDIS_POOL_SETTINGS['host']}:{settings.REDIS_POOL_SETTINGS['port']}/'
 
 app = Celery('tasks',
-             broker='redis://localhost:6379/',
-             backend='redis://localhost:6379/')
+             broker=redis_url,
+             backend=redis_url)
 
 
 @app.task()

@@ -37,6 +37,40 @@ def close_popup(driver: Chrome) -> None:
         return'''
 
 
+class CustomChrome(Chrome):
+
+    def __init__(self,
+                 proxy: str = None,
+                 timeout: int = 60,
+                 wait_time: int = 30,
+                 browser_executable_path: str = None,
+                 driver_executable_path: str = None) -> None:
+
+        self.__display = Display()
+
+        self.__display.start()
+
+        options = ChromeOptions()
+        options.add_argument('--password-store=basic')
+        # options.page_load_strategy = 'none'
+        options.page_load_strategy = 'eager'
+        if proxy is not None:
+            options.add_argument(f"--load-extension={proxy}")
+
+        super().__init__(options=options,
+                         browser_executable_path=browser_executable_path,
+                         driver_executable_path=driver_executable_path
+                         )
+
+        self.set_page_load_timeout(timeout)
+        self.implicitly_wait(wait_time)
+
+    def __del__(self) -> None:
+        super().__del__()
+        self.__display.stop()
+        del self.__display
+
+
 def make_driver(proxy: str = None,
                 timeout: int = 60,
                 wait_time: int = 30) -> Chrome:
@@ -47,19 +81,19 @@ def make_driver(proxy: str = None,
     options.page_load_strategy = 'eager'
     if proxy is not None:
         options.add_argument(f"--load-extension={proxy}")
-    driver = Chrome(options=options,
-                    browser_executable_path='/usr/bin/google-chrome',
-                    # driver_executable_path='/home/sasha/Documents/chromedriver'
-                    driver_executable_path='./chromedriver'
-                    )
-    driver.minimize_window()
+    driver = CustomChrome(options=options,
+                          browser_executable_path='/usr/bin/google-chrome',
+                          # driver_executable_path='/home/sasha/Documents/chromedriver'
+                          driver_executable_path='./chromedriver'
+                          )
+    # driver.minimize_window()
     driver.set_page_load_timeout(timeout)
     driver.implicitly_wait(wait_time)
     sleep(2)
     return driver
 
 
-def get_player_recent_statistics(basic_url, team, number, match_date, proxy):
+def get_player_recent_statistics(basic_url: str, team, number, match_date, proxy):
     driver = make_driver(proxy)
     yesterday = date.fromisoformat(match_date) - timedelta(days=1)
     start_date = yesterday - timedelta(weeks=12)

@@ -1,8 +1,7 @@
 .venv
 .env
 **.__pycache__
-hltv_v2_log.log
-log.log
+*.log
 __pycache__
 rus.sh
 test.py

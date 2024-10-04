@@ -1,11 +1,7 @@
-import os
 import asyncio
 import logging
 import redis
 
-from multiprocessing import Process
-from threading import Thread
-# from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 
 from core.menu import top_level_router
@@ -27,8 +23,13 @@ redis_conn = redis.Redis(connection_pool=pool)
 
 dispatcher['redis'] = redis_conn
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename='hltv_v2_log.log', filemode='w')
+# logger = logging.getLogger(__name__)
+logging.basicConfig(handlers=[
+    logging.FileHandler(filename='hltv_v2_log.log', mode='w'),
+    logging.StreamHandler()
+    ],
+    level=logging.DEBUG
+    )
 
 routers = [top_level_router,
            prediction_router]
@@ -52,13 +53,12 @@ if __name__ == '__main__':
 
 # требования
 
-# пофиксить 8 разовое создание прокси(создавать прокси из файла 1 раз при запуске бота и не импортировать никуда их(создать константу с проксями)) вынести в баш скрипт
 # переписать шедулер для многопользовательского режима(запрос тех у кого автопредикт, парсинг, формирование сообщений, рассылка)
 # перенести настройки на pydantic
+# и переделать на импорт класса
 # изменение настроек через бота
 # сделать отмену задач в селери
 # деплой в докер контейнер
 # вебхук
 # добавить автоматический обход сайта и оповещение об изменении результата по матчу(опционально)
 # добавить аналитику(где данные собираются за последнее время, делаются предикты и считается точность в нескольких показателях)
-# наладить логирование в несколько файлов

@@ -13,6 +13,8 @@ from selenium.common.exceptions import (TimeoutException,
 from random import choice
 from typing import Literal
 
+from settings import settings
+
 soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
 
@@ -81,11 +83,11 @@ def make_driver(proxy: str = None,
     options.page_load_strategy = 'eager'
     if proxy is not None:
         options.add_argument(f"--load-extension={proxy}")
-    driver = CustomChrome(options=options,
-                          browser_executable_path='/usr/bin/google-chrome',
-                          # driver_executable_path='/home/sasha/Documents/chromedriver'
-                          driver_executable_path='./chromedriver'
-                          )
+    driver = Chrome(options=options,
+                    browser_executable_path=settings.CHROME_EXECUTABLE_PATH,
+                    # driver_executable_path='/home/sasha/Documents/chromedriver'
+                    driver_executable_path=settings.DRIVER_EXECUTABLE_PATH
+                    )
     # driver.minimize_window()
     driver.set_page_load_timeout(timeout)
     driver.implicitly_wait(wait_time)
@@ -458,12 +460,12 @@ def get_player_stats(driver: Chrome, player_url, match_date, team_number, number
             res[f't{team_number}p{number}_age'] = int(re.findall(r'\d+', driver.find_element(By.CSS_SELECTOR,'div.summaryPlayerAge').text)[0])
         except IndexError:
             res[f't{team_number}p{number}_age'] = 0
-        
+  
         return res
 
 
 def get_recent_stats(driver: Chrome,
-                     player_url,
+                     player_url: str,
                      match_date,
                      weeks,
                      team_number,
@@ -564,7 +566,10 @@ def get_player_urls(driver: Chrome) -> list[str]:
                                          '.bodyshot-team.g-grid a')))
 
 
-def process_fantasy_match(team0_url, team1_url, proxy=None):
+def process_fantasy_match(team0_url: str,
+                          team1_url: str,
+                          proxy: str = None):
+
     driver = make_driver(proxy,
                          30,
                          15)
@@ -722,7 +727,7 @@ def process_match(url: str, proxy: str = None,
                   history: bool = False,
                   extended: bool = False
                   ) -> dict[str, any]:
-    
+
     # display = Display(size=(1920, 1080))
 
     # display.start()

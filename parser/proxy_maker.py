@@ -100,8 +100,8 @@ def make_proxy_extensions() -> list[str]:
     proxies = make_proxies(file, path)
 
     proxies.append(None)
-    # with open('proxies.json', 'w') as file:
-    #     json.dump(proxies, file)
+    with open('proxies.json', 'w') as file:
+        json.dump(proxies, file)
 
     return proxies
 

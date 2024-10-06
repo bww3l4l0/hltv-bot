@@ -43,7 +43,7 @@ regex_pattern = re.compile(
     r"(?:/?|[/?]\S+)$", re.IGNORECASE)
 
 
-with open('/home/sasha/Documents/vscode/hltv v2 bot/core/model/hltv_v2_model_dump', 'rb') as file:
+with open('./core/model/hltv_v2_model_dump', 'rb') as file:
     model = pickle.load(file)
 
 url_pattern = re.compile('https://www.hltv.org/matches/\\d{5,7}/\\S{20,300}')
@@ -155,6 +155,8 @@ async def predict_some(callback: CallbackQuery, callback_data: PredictionData, r
     result_object = fetch_match_urls_task.apply_async((callback_data.date,), queue='xyz')
 
     urls = await wait_task_result(result_object)
+
+    print(urls)
 
     tasks = [wrap_task(process_match(url, callback.message, redis)) for url in urls]
     await asyncio.gather(*tasks)

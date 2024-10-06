@@ -1,7 +1,9 @@
 from time import sleep
-from undetected_chromedriver import Chrome, ChromeOptions, By
+from datetime import date, timedelta
+from typing import Literal
+from undetected_chromedriver import Chrome, ChromeOptions, By, WebElement
 from pyvirtualdisplay import Display
-from hltv_parser_extended_data import (
+from parser.hltv_parser_extended_data import (
     get,
     get_team_names,
     get_winstreaks,
@@ -15,6 +17,8 @@ from hltv_parser_extended_data import (
     get_player_links,
     get_player_full_stats
     )
+
+from settings import settings
 
 
 class CustomChrome(Chrome):
@@ -51,27 +55,70 @@ class CustomChrome(Chrome):
         del self.__display
 
 
-def make_driver(proxy: str = None,
-                timeout: int = 60,
-                wait_time: int = 30) -> Chrome:
+# def make_driver(proxy: str = None,
+#                 timeout: int = 60,
+#                 wait_time: int = 30) -> Chrome:
 
-    options = ChromeOptions()
-    options.add_argument('--password-store=basic')
-    # options.page_load_strategy = 'none'
-    options.page_load_strategy = 'eager'
-    if proxy is not None:
-        options.add_argument(f"--load-extension={proxy}")
-    driver = CustomChrome(options=options,
-                          browser_executable_path='/usr/bin/google-chrome',
-                          # driver_executable_path='/home/sasha/Documents/chromedriver'
-                          driver_executable_path='./chromedriver'
-                          )
+#     options = ChromeOptions()
+#     options.add_argument('--password-store=basic')
+#     # options.page_load_strategy = 'none'
+#     options.page_load_strategy = 'eager'
+#     if proxy is not None:
+#         options.add_argument(f"--load-extension={proxy}")
+#     driver = CustomChrome(options=options,
+#                           browser_executable_path='/usr/bin/google-chrome',
+#                           # driver_executable_path='/home/sasha/Documents/chromedriver'
+#                           driver_executable_path='./chromedriver'
+#                           )
 
-    # driver.minimize_window()
-    driver.set_page_load_timeout(timeout)
-    driver.implicitly_wait(wait_time)
-    sleep(2)
-    return driver
+#     # driver.minimize_window()
+#     driver.set_page_load_timeout(timeout)
+#     driver.implicitly_wait(wait_time)
+#     sleep(2)
+#     return driver
+
+
+def __get_match_urls_by_date(driver: Chrome, day: Literal['today', 'tomorrow']) -> list[WebElement]:
+    matches = []
+    if day not in ['today', 'tomorrow']:
+        driver.quit()
+        raise ValueError('некоректная дата')
+
+    target_date = date.today() if day == 'today' else date.today() + timedelta(days=1)
+    for element in driver.find_elements(By.CSS_SELECTOR,
+                                        '.upcomingMatchesSection'):
+
+        header = element.find_element(By.CSS_SELECTOR,
+                                      '.matchDayHeadline')
+        day = header.text.split(' ')[-1]
+        if date.fromisoformat(day) == target_date:
+            matches = element.find_elements(By.CSS_SELECTOR,
+                                            'a.match.a-reset')
+    result = list(map(lambda foo: foo.get_attribute('href'), matches))
+    driver.quit()
+    return result
+
+
+def __get_live_match_urls(driver: Chrome) -> list[str]:
+    result = list(map(lambda e: e.get_attribute('href'),
+                      driver.find_elements(By.CSS_SELECTOR,
+                                           '.liveMatchesContainer a.match.a-reset')))
+
+    driver.quit()
+    return result
+
+
+def fetch_match_urls(time: Literal['live', 'today', 'tomorrow']) -> list[str]:
+    '''
+    возвращает ссылки на матчи(лайв, сегодня, завтра)
+    '''
+    driver = CustomChrome(browser_executable_path=settings.CHROME_EXECUTABLE_PATH,
+                          driver_executable_path=settings.DRIVER_EXECUTABLE_PATH)
+    url = 'https://www.hltv.org/matches'
+    driver.get(url)
+    if time == 'live':
+        return __get_live_match_urls(driver)
+    return __get_match_urls_by_date(driver, time)
 
 
 def process_match(url: str, proxy: str = None,
@@ -86,8 +133,8 @@ def process_match(url: str, proxy: str = None,
     # driver = make_driver(proxy, 30, 15)
 
     driver = CustomChrome(proxy, 30, 15,
-                          browser_executable_path='/usr/bin/google-chrome',
-                          driver_executable_path='./chromedriver'
+                          browser_executable_path=settings.CHROME_EXECUTABLE_PATH,
+                          driver_executable_path=settings.DRIVER_EXECUTABLE_PATH
                           )
 
     get(driver, url, 'match')

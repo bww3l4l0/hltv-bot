@@ -14,7 +14,7 @@ sudo docker start 2d33b59d874a
 n=$(wc -l < proxies.txt)
 n=$((n+2))
 
-echo $n
+echo workers:$n
 
 # xvfb-run celery -A celery_tasks.app worker --loglevel=DEBUG --logfile=log.log --pool=prefork -n hltv -E -Q xyz --concurrency=$n &
 celery -A celery_tasks.app worker --loglevel=DEBUG --logfile=log.log --pool=prefork -n hltv -E -Q xyz --concurrency=$n &

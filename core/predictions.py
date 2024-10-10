@@ -20,7 +20,8 @@ from parser.prepocessing import preprocess
 from celery_tasks import (process_match_task,
                           fetch_match_urls_task,
                           app as celery_app)
-from redis import Redis
+
+from redis.asyncio import Redis
 
 from settings import settings
 
@@ -55,11 +56,13 @@ def validate_url(url: str) -> bool:
 
 
 def make_result_str(data: DataFrame, prediction: ndarray) -> str:
-    result = dedent(f'''url: {data['url'][0]}
-{data['t1_name'][0]} : {data['t2_name'][0]}
+    result = dedent(f'''{data['t1_name'][0]} : {data['t2_name'][0]}
+url: {data['url'][0]}
 date: {data['date'][0]}
 first team win prob: {prediction[0][0]:.3f}
+min coef for profit: {(1 / (prediction[0][0] - settings.CORRECTION)):.3f}
 second team win prob: {prediction[0][1]:.3f}
+min coef for profit: {(1 / (prediction[0][1] - settings.CORRECTION)):.3f}
 ''')
     return result
 
@@ -85,20 +88,16 @@ async def wrap_task(coro: Callable[..., Awaitable]) -> None:
 # рабочая версия но с использованием asyncio
 async def process_match(url: str, message: Message, redis: Redis) -> None:
 
-    # check redis by url
-    # хранить будем сообщения на ответ с ttl 3600
-    data = redis.get(url)
+    data = await redis.get(url)
 
-    # сериализация ошибки
-    # попробовать поймать ошибку извлечения данных
     if data is None:
-        result_object = process_match_task.apply_async((url,), queue='xyz')
+        result_object = process_match_task.apply_async((url,), queue=settings.CELERY_QUEUE_NAME)
         data = await wait_task_result(result_object)
         if type(data) is dict:
             msg = json.dumps(data)
-            redis.setex(url, settings.REDIS_CACHE_TTL, msg)
+            await redis.setex(url, settings.REDIS_CACHE_TTL, msg)
         else:
-            redis.setex(url, settings.REDIS_CACHE_TTL, 'Exception')
+            await redis.setex(url, settings.REDIS_CACHE_TTL, 'Exception')
 
     elif data == b'Exception':
         data = None
@@ -111,12 +110,17 @@ async def process_match(url: str, message: Message, redis: Redis) -> None:
             data = preprocess(data)
             prediction = model.predict_proba(data)
             message_text = make_result_str(data, prediction)
+            await redis.setex(url, message_text, settings.REDIS_CACHE_TTL)
             await message.answer(message_text)
             return
         except Exception as e:
 
             await message.answer(dedent(f'''url; {url}\nневозможно сделать предсказание'''))
             logger.exception(e)
+
+    elif type(data) is str:  # вслучае если есть готовый предикт
+        await message.answer(data)
+        return
 
     else:
         await message.answer(dedent(f'''url: {url}\nневозможно извлечь нужные данные'''))
@@ -152,7 +156,7 @@ async def predict_one(message: Message, state: FSMContext, redis: Redis) -> None
 async def predict_some(callback: CallbackQuery, callback_data: PredictionData, redis: Redis) -> None:
     await callback.answer()
 
-    result_object = fetch_match_urls_task.apply_async((callback_data.date,), queue='xyz')
+    result_object = fetch_match_urls_task.apply_async((callback_data.date,), queue=settings.CELERY_QUEUE_NAME)
 
     urls = await wait_task_result(result_object)
 

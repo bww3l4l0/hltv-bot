@@ -75,8 +75,8 @@ def main() -> None:
         ],
         level=logging.DEBUG
         )
-    
-    bot = Bot(settings.TOKEN) 
+
+    bot = Bot(settings.TOKEN)
 
     app = web.Application()
 
@@ -94,9 +94,9 @@ def main() -> None:
     # And finally start webserver
     web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
 
-    
 
 if __name__ == '__main__':
+    main()
     # asyncio.run(main())
 
 

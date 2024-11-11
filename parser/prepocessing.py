@@ -2,6 +2,9 @@ from pandas import DataFrame
 
 
 def preprocess(data: dict) -> DataFrame:
+    '''
+    подготавливает данные для predict
+    '''
     # make df
     df = DataFrame([data])
 

@@ -12,3 +12,6 @@ parser/proxies/
 proxies.txt
 settings_.py
 cancel.py
+
+webhook.py
+parser/parser_test.py

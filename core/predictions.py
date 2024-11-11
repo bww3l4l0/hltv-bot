@@ -51,11 +51,14 @@ url_pattern = re.compile('https://www.hltv.org/matches/\\d{5,7}/\\S{20,300}')
 
 
 def validate_url(url: str) -> bool:
-    '''url validation for predict one'''
+    '''валидация url передаваемого при обработки кнопки предсказать матч'''
     return re.match(url_pattern, url) is not None
 
 
 def make_result_str(data: DataFrame, prediction: ndarray) -> str:
+    '''
+    формирует строку результат для отправки сообщения
+    '''
     result = dedent(f'''{data['t1_name'][0]} : {data['t2_name'][0]}
 url: {data['url'][0]}
 date: {data['date'][0]}
@@ -68,6 +71,9 @@ min coef for profit: {(1 / (prediction[0][1] - settings.CORRECTION)):.3f}
 
 
 async def wait_task_result(result_object: AsyncResult) -> any:
+    '''
+    обертка позволяющая селери работать в асинхронном контексте
+    '''
     while True:
         await asyncio.sleep(settings.ASYNCIO_SLEEP_TIME)
         if result_object.ready():
@@ -75,6 +81,9 @@ async def wait_task_result(result_object: AsyncResult) -> any:
 
 
 async def wrap_task(coro: Callable[..., Awaitable]) -> None:
+    '''
+    обертка над корутиной, для поддержания списка активных задач
+    '''
     task = asyncio.create_task(coro)
     tasks.add(task)
     try:
@@ -85,53 +94,14 @@ async def wrap_task(coro: Callable[..., Awaitable]) -> None:
     tasks.remove(task)
 
 
-# рабочая версия но с использованием asyncio
-# async def process_match(url: str, message: Message, redis: Redis) -> None:
-
-#     data = await redis.get(url)
-
-#     if data is None:
-#         result_object = process_match_task.apply_async((url,), queue=settings.CELERY_QUEUE_NAME)
-#         data = await wait_task_result(result_object)
-#         if type(data) is dict:
-#             msg = json.dumps(data)
-#             await redis.setex(url, settings.REDIS_CACHE_TTL, msg)
-#         else:
-#             await redis.setex(url, settings.REDIS_CACHE_TTL, 'Exception')
-
-#     elif data == b'Exception':
-#         data = None
-#     else:
-#         data = json.loads(data)
-
-#     if type(data) is dict:
-#         try:
-
-#             data = preprocess(data)
-#             prediction = model.predict_proba(data)
-#             message_text = make_result_str(data, prediction)
-#             await redis.setex(url, settings.REDIS_CACHE_TTL, message_text)
-#             await message.answer(message_text)
-#             return
-#         except Exception as e:
-
-#             await message.answer(dedent(f'''url; {url}\nневозможно сделать предсказание'''))
-#             logger.exception(e)
-
-#     elif type(data) is str:  # вслучае если есть готовый предикт
-#         await message.answer(data)
-#         return
-
-#     else:
-#         await message.answer(dedent(f'''url: {url}\nневозможно извлечь нужные данные'''))
-#         logger.exception(data)
-#         return
-
 async def process_match(url: str,
                         bot: Bot,
                         user_id: int,
                         redis: Redis
                         ) -> None:
+    '''
+    обработка матча по url и отправка сообщения пользователю
+    '''
 
     data = await redis.get(url)
 
@@ -167,7 +137,7 @@ async def process_match(url: str,
             await bot.send_message(user_id, message_text)
             return
         except Exception as e:
-            
+
             await redis.setex(url, settings.REDIS_CACHE_TTL, 'Exception')
             await bot.send_message(user_id, dedent(f'''url: {url}\nневозможно сделать предсказание'''))
             logging.exception(e)
@@ -180,6 +150,9 @@ async def process_match(url: str,
 
 @prediction_router.message(Command('cancel'))
 async def calcel(message: Message) -> None:
+    '''
+    отмена задач находящихся в tasks
+    '''
     await message.answer('задачи отменены')
     for task in tasks:
         task.cancel()
@@ -189,6 +162,9 @@ async def calcel(message: Message) -> None:
 
 @prediction_router.message(RoutingFsm.getting_url)
 async def predict_one(message: Message, bot: Bot, state: FSMContext, redis: Redis) -> None:
+    '''
+    обработка одного матча
+    '''
 
     url = message.text
 
@@ -204,6 +180,9 @@ async def predict_one(message: Message, bot: Bot, state: FSMContext, redis: Redi
 
 @prediction_router.callback_query(PredictionData.filter(F.date.in_(['live', 'today', 'tomorrow'])))
 async def predict_some(callback: CallbackQuery, callback_data: PredictionData, bot: Bot, redis: Redis) -> None:
+    '''
+    обработка нескольких матчей
+    '''
     await callback.answer()
 
     result_object = fetch_match_urls_task.apply_async((callback_data.date,), queue=settings.CELERY_QUEUE_NAME)

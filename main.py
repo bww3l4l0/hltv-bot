@@ -10,16 +10,10 @@ from core.predictions import prediction_router
 from core.newsleter import newsleter_router
 from settings import settings
 
-# from sch import run_scheduler
-
-
-# load_dotenv()
-
-# TOKEN = os.getenv('TOKEN')
 
 dispatcher = Dispatcher()
 
-# pool = redis.ConnectionPool(host='localhost', port=6379, db=0, max_connections=4)
+
 pool = ConnectionPool(host=settings.REDIS_DSN.host,
                       port=settings.REDIS_DSN.port,
                       db=settings.REDIS_DSN.path[1:])
@@ -28,7 +22,7 @@ redis_conn = Redis(connection_pool=pool)
 
 dispatcher['redis'] = redis_conn
 
-# logger = logging.getLogger(__name__)
+
 logging.basicConfig(handlers=[
     logging.FileHandler(filename='./.logs/hltv_v2_log.log', mode=settings.LOGGING_MOD),
     logging.StreamHandler()
@@ -45,14 +39,10 @@ dispatcher.include_routers(*routers)
 
 async def main() -> None:
     '''
-    main method
+    entry point
     '''
-    # pg_dsn = f'postgresql://{settings.PG_POOL_SETTINGS['pg_user']}:{settings.PG_POOL_SETTINGS['pg_password']}@{settings.PG_POOL_SETTINGS['pg_host']}'
-    # pg_pool = await create_pool(pg_dsn)
-    # dispatcher['pg'] = pg_pool
     bot = Bot(settings.BOT_TOKEN.get_secret_value())
-    # process = Process(target=run_scheduler, args=(bot, ))
-    # process.start()
+
     await dispatcher.start_polling(bot)
 
 

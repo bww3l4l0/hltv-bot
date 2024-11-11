@@ -55,30 +55,10 @@ class CustomChrome(Chrome):
         del self.__display
 
 
-# def make_driver(proxy: str = None,
-#                 timeout: int = 60,
-#                 wait_time: int = 30) -> Chrome:
-
-#     options = ChromeOptions()
-#     options.add_argument('--password-store=basic')
-#     # options.page_load_strategy = 'none'
-#     options.page_load_strategy = 'eager'
-#     if proxy is not None:
-#         options.add_argument(f"--load-extension={proxy}")
-#     driver = CustomChrome(options=options,
-#                           browser_executable_path='/usr/bin/google-chrome',
-#                           # driver_executable_path='/home/sasha/Documents/chromedriver'
-#                           driver_executable_path='./chromedriver'
-#                           )
-
-#     # driver.minimize_window()
-#     driver.set_page_load_timeout(timeout)
-#     driver.implicitly_wait(wait_time)
-#     sleep(2)
-#     return driver
-
-
 def __get_match_urls_by_date(driver: Chrome, day: Literal['today', 'tomorrow']) -> list[WebElement]:
+    '''
+    извлекает ссылки на матчи
+    '''
     matches = []
     if day not in ['today', 'tomorrow']:
         driver.quit()
@@ -100,6 +80,9 @@ def __get_match_urls_by_date(driver: Chrome, day: Literal['today', 'tomorrow']) 
 
 
 def __get_live_match_urls(driver: Chrome) -> list[str]:
+    '''
+    извлекает ссылки на лайв матчи
+    '''
     result = list(map(lambda e: e.get_attribute('href'),
                       driver.find_elements(By.CSS_SELECTOR,
                                            '.liveMatchesContainer a.match.a-reset')))
@@ -125,12 +108,9 @@ def process_match(url: str, proxy: str = None,
                   history: bool = False,
                   extended: bool = False
                   ) -> dict[str, any]:
-    
-    # display = Display(size=(1920, 1080))
-
-    # display.start()
-
-    # driver = make_driver(proxy, 30, 15)
+    '''
+    извлечение данных о матче
+    '''
 
     driver = CustomChrome(proxy, 30, 15,
                           browser_executable_path=settings.CHROME_EXECUTABLE_PATH,
@@ -235,7 +215,6 @@ def process_match(url: str, proxy: str = None,
     finally:
         driver.quit()
         # display.stop()
-
     return res
 
 

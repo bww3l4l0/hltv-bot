@@ -90,6 +90,9 @@ def make_proxies(proxy_file: str, proxy_folder_path: str) -> list[str]:
 
 
 def make_proxy_extensions() -> list[str]:
+    '''
+    создает расширения для хрома(в хроме подключить прокси можно только через расширение)
+    '''
     file = 'proxies.txt'
     path = 'parser/proxies/'
 

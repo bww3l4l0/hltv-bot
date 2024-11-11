@@ -5,6 +5,9 @@ from settings import settings
 
 
 class IsAdmin(Filter):
+    '''
+    фильтр который отсекает всех кроме админа, по tg id, tg id устанавливается в файле settings.py
+    '''
     def __init__(self) -> None:
         super().__init__()
 

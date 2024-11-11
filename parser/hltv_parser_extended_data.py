@@ -95,7 +95,7 @@ def make_driver(proxy: str = None,
     return driver
 
 
-def get_player_recent_statistics(basic_url: str, team, number, match_date, proxy):
+def get_player_recent_statistics(basic_url: str, team: int, number, match_date, proxy):
     driver = make_driver(proxy)
     yesterday = date.fromisoformat(match_date) - timedelta(days=1)
     start_date = yesterday - timedelta(weeks=12)

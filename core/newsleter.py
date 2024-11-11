@@ -9,6 +9,9 @@ USERS_REDIS_KEY = 'bot_subscribers'
 
 @newsleter_router.message(Command('enable'))
 async def enable(message: Message, redis: Redis) -> None:
+    '''
+    /enable handler(подключение рассылки)
+    '''
     if await redis.sismember(USERS_REDIS_KEY, message.from_user.id):
         await message.answer('вы уже подписаны')
         return
@@ -18,6 +21,9 @@ async def enable(message: Message, redis: Redis) -> None:
 
 @newsleter_router.message(Command('disable'))
 async def disable(message: Message, redis: Redis) -> None:
+    '''
+    /disable handler(отключение рассылки)
+    '''
     if not await redis.sismember(USERS_REDIS_KEY, message.from_user.id):
         await message.answer('вы не подписаны')
         return

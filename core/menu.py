@@ -14,12 +14,17 @@ top_level_router = Router()
 
 @top_level_router.message(CommandStart(), IsAdmin())
 async def start(message: Message) -> None:
+    '''
+    /start handler
+    '''
     await message.answer('привет чтобы вызвать меню напиши /menu')
 
 
 @top_level_router.message(Command('menu'), IsAdmin())
 async def menu(message: Message) -> None:
-
+    '''
+    /menu handler
+    '''
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text='Предсказать результат матча', callback_data='predict')],
@@ -34,6 +39,9 @@ async def menu(message: Message) -> None:
 
 @top_level_router.callback_query(F.data == 'predict', IsAdmin())
 async def predict(callback: CallbackQuery, state: FSMContext) -> None:
+    '''
+    predict menu button handler(Предсказать результат матча)
+    '''
     await callback.answer()
     await callback.message.answer('введите url матча')
     await state.set_state(RoutingFsm.getting_url)

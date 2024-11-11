@@ -15,3 +15,4 @@ cancel.py
 
 webhook.py
 parser/parser_test.py
+parser/hltv_parser_extended_data.py

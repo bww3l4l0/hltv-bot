@@ -3,7 +3,7 @@ import asyncio
 import pickle
 import logging
 import json
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.filters import Command
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types.message import Message
@@ -86,23 +86,76 @@ async def wrap_task(coro: Callable[..., Awaitable]) -> None:
 
 
 # рабочая версия но с использованием asyncio
-async def process_match(url: str, message: Message, redis: Redis) -> None:
+# async def process_match(url: str, message: Message, redis: Redis) -> None:
+
+#     data = await redis.get(url)
+
+#     if data is None:
+#         result_object = process_match_task.apply_async((url,), queue=settings.CELERY_QUEUE_NAME)
+#         data = await wait_task_result(result_object)
+#         if type(data) is dict:
+#             msg = json.dumps(data)
+#             await redis.setex(url, settings.REDIS_CACHE_TTL, msg)
+#         else:
+#             await redis.setex(url, settings.REDIS_CACHE_TTL, 'Exception')
+
+#     elif data == b'Exception':
+#         data = None
+#     else:
+#         data = json.loads(data)
+
+#     if type(data) is dict:
+#         try:
+
+#             data = preprocess(data)
+#             prediction = model.predict_proba(data)
+#             message_text = make_result_str(data, prediction)
+#             await redis.setex(url, settings.REDIS_CACHE_TTL, message_text)
+#             await message.answer(message_text)
+#             return
+#         except Exception as e:
+
+#             await message.answer(dedent(f'''url; {url}\nневозможно сделать предсказание'''))
+#             logger.exception(e)
+
+#     elif type(data) is str:  # вслучае если есть готовый предикт
+#         await message.answer(data)
+#         return
+
+#     else:
+#         await message.answer(dedent(f'''url: {url}\nневозможно извлечь нужные данные'''))
+#         logger.exception(data)
+#         return
+
+async def process_match(url: str,
+                        bot: Bot,
+                        user_id: int,
+                        redis: Redis
+                        ) -> None:
 
     data = await redis.get(url)
 
     if data is None:
         result_object = process_match_task.apply_async((url,), queue=settings.CELERY_QUEUE_NAME)
         data = await wait_task_result(result_object)
+
         if type(data) is dict:
             msg = json.dumps(data)
+
             await redis.setex(url, settings.REDIS_CACHE_TTL, msg)
         else:
             await redis.setex(url, settings.REDIS_CACHE_TTL, 'Exception')
 
     elif data == b'Exception':
         data = None
-    else:
-        data = json.loads(data)
+        await bot.send_message(user_id, dedent(f'''url; {url}\nневозможно сделать предсказание'''))
+
+    # elif data[:3] == b'{"':
+    #     data = json.loads(data)
+
+    else:  # получается есть готовый предикт
+        await bot.send_message(user_id, data)
+        return
 
     if type(data) is dict:
         try:
@@ -110,21 +163,18 @@ async def process_match(url: str, message: Message, redis: Redis) -> None:
             data = preprocess(data)
             prediction = model.predict_proba(data)
             message_text = make_result_str(data, prediction)
-            await redis.setex(url, message_text, settings.REDIS_CACHE_TTL)
-            await message.answer(message_text)
+            await redis.setex(url, settings.REDIS_CACHE_TTL, message_text)
+            await bot.send_message(user_id, message_text)
             return
         except Exception as e:
-
-            await message.answer(dedent(f'''url; {url}\nневозможно сделать предсказание'''))
-            logger.exception(e)
-
-    elif type(data) is str:  # вслучае если есть готовый предикт
-        await message.answer(data)
-        return
+            
+            await redis.setex(url, settings.REDIS_CACHE_TTL, 'Exception')
+            await bot.send_message(user_id, dedent(f'''url: {url}\nневозможно сделать предсказание'''))
+            logging.exception(e)
 
     else:
-        await message.answer(dedent(f'''url: {url}\nневозможно извлечь нужные данные'''))
-        logger.exception(data)
+        await bot.send_message(user_id, dedent(f'''url: {url}\nневозможно извлечь нужные данные'''))
+        logging.exception(data)
         return
 
 
@@ -138,7 +188,7 @@ async def calcel(message: Message) -> None:
 
 
 @prediction_router.message(RoutingFsm.getting_url)
-async def predict_one(message: Message, state: FSMContext, redis: Redis) -> None:
+async def predict_one(message: Message, bot: Bot, state: FSMContext, redis: Redis) -> None:
 
     url = message.text
 
@@ -149,18 +199,20 @@ async def predict_one(message: Message, state: FSMContext, redis: Redis) -> None
     await state.set_state(RoutingFsm.none)
 
     # await process_match(url, message, redis)
-    await wrap_task(process_match(url, message, redis))
+    await wrap_task(process_match(url, bot, message.chat.id, redis))
 
 
 @prediction_router.callback_query(PredictionData.filter(F.date.in_(['live', 'today', 'tomorrow'])))
-async def predict_some(callback: CallbackQuery, callback_data: PredictionData, redis: Redis) -> None:
+async def predict_some(callback: CallbackQuery, callback_data: PredictionData, bot: Bot, redis: Redis) -> None:
     await callback.answer()
 
     result_object = fetch_match_urls_task.apply_async((callback_data.date,), queue=settings.CELERY_QUEUE_NAME)
 
     urls = await wait_task_result(result_object)
 
+    callback.message
+
     print(urls)
 
-    tasks = [wrap_task(process_match(url, callback.message, redis)) for url in urls]
+    tasks = [wrap_task(process_match(url, bot, callback.message.chat.id, redis)) for url in urls]
     await asyncio.gather(*tasks)

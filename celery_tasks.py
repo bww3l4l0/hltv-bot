@@ -6,11 +6,11 @@ from parser.custom_chrome import process_match, fetch_match_urls
 from typing import Literal
 from settings import settings
 
-redis_url = f'''redis://{settings.REDIS_POOL_SETTINGS['host']}:{settings.REDIS_POOL_SETTINGS['port']}/'''
+# redis_url = f'''redis://{settings.REDIS_POOL_SETTINGS['host']}:{settings.REDIS_POOL_SETTINGS['port']}/'''
 
 app = Celery('tasks',
-             broker=redis_url,
-             backend=redis_url)
+             broker=str(settings.REDIS_DSN),
+             backend=str(settings.REDIS_DSN))
 
 
 @app.task()

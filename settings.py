@@ -1,53 +1,39 @@
 import json
-from dataclasses import dataclass
 from os import getenv
-from apscheduler.triggers.cron import CronTrigger
-from pydantic_settings import BaseSettings
-from pydantic import Field, NonNegativeFloat
-# from pydantic_settings
+from typing import Union
 from dotenv import load_dotenv
+from pydantic import Field, SecretStr, RedisDsn, FilePath
+from pydantic_settings import BaseSettings
 
-
-load_dotenv()
+load_dotenv(override=True)
 
 with open('proxies.json', 'r') as file:
     proxies = json.load(file)
 
 
-@dataclass(frozen=True, slots=True)
-class Settings():
+class Settings(BaseSettings):
+    BOT_TOKEN: SecretStr = SecretStr(getenv('TOKEN'))
+    ADMIN_ID: int = Field(getenv('ADMIN_ID'), ge=100000, le=10000000000)
+    AUTOPREDICT_CRON_HOUR: int = Field(getenv('AUTOPREDICT_CRON_HOUR'), ge=0, lt=24)
+    AUTOPREDICT_CRON_MINUTE: int = Field(getenv('AUTOPREDICT_CRON_MINUTE'), ge=0, lt=59)
+    ASYNCIO_SLEEP_TIME: int = Field(getenv('ASYNCIO_SLEEP_TIME'), gt=0, le=60)
+    REDIS_CACHE_TTL: int = Field(3600, gt=60, le=24000)
+    REDIS_DSN: RedisDsn = getenv('REDIS_DSN')
+    CELERY_QUEUE_NAME: str = Field(getenv('CELERY_QUEUE_NAME'), min_length=1, max_length=15)
+    СELERY_TIMEOUT: int = Field(int(getenv('CELERY_TIMEOUT')), ge=100, le=3600)
+    CHROME_EXECUTABLE_PATH: str = getenv('CHROME_EXECUTABLE_PATH')
+    DRIVER_EXECUTABLE_PATH: str = getenv('DRIVER_EXECUTABLE_PATH')
+    CORRECTION: float = Field(getenv('CORRECTION'), ge=0.001, le=0.1)
+    PROXIES: list[Union[str, None]] = proxies
+    LOGGING_LEVEL: int = getenv('LOGGING_LEVEL')
+    LOGGING_MOD: str = Field(getenv('LOGGING_LEVEL'), min_length=1, max_length=1)  # сделать literal
 
-    AUTOPREDICT_CRON_HOUR = int(getenv('AUTOPREDICT_CRON_HOUR'))
-    AUTOPREDICT_CRON_MINUTE = int(getenv('AUTOPREDICT_CRON_MINUTE'))
-    ADMIN_ID: int = int(getenv('ADMIN_ID'))
-    TOKEN: str = getenv('TOKEN')
-    REDIS_POOL_SETTINGS = {'host': getenv('REDIS_POOL_HOST'),
-                           'port': getenv('REDIS_POOL_PORT')}
-    # PG_POOL_SETTINGS = {'pg_host': getenv('POSTGRESS_HOST'),
-    #                     'pg_user': getenv('POSTGRESS_USER'),
-    #                     'pg_password': getenv('POSTGRESS_PASSWORD'),
-    #                     'pg_pool_size': int(getenv('POSTGRESS_POOL_SIZE')),
-    #                     'pg_db_name': getenv('POSTGRESS_DB_NAME')}
-    CELERY_QUEUE_NAME: str = getenv('CELERY_QUEUE_NAME')
-    LOGGING_SETTINGS = {}
-    ASYNCIO_SLEEP_TIME: int = int(getenv('ASYNCIO_SLEEP_TIME'))
-    REDIS_CACHE_TTL: int = int(getenv('REDIS_CACHE_TTL'))
-    PROXIES = proxies
-    CHROME_EXECUTABLE_PATH = getenv('CHROME_EXECUTABLE_PATH')
-    DRIVER_EXECUTABLE_PATH = getenv('DRIVER_EXECUTABLE_PATH')
-    CORRECTION = float(getenv('CORRECTION'))
+    class Config:
+        frozen = True
 
 
-# class WebhookSettings(BaseSettings):
-#     WEB_SERVER_HOST 
-#     WEB_SERVER_PORT
-#     BASE_WEBHOOK_URL
-#     WEBHOOK_PATH
-#     WEBHOOK_SECRET
-
-
-# webhook_settings = WebhookSettings()
-
+# LOGGING_SETTINGS = {}
+# PROXIES = proxies
 
 settings = Settings()
-# print(settings.PG_POOL_SETTINGS)
+
